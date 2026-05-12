@@ -6,8 +6,11 @@ package Controllers "Custom motor controllers"
   model SepExController
     parameter SI.Voltage voltage = 0 "System Voltage";
     parameter SI.Current current = 0 "System Current";
-    parameter Boolean weakeningEnabled = true "Field-Weakening enabled";
-    parameter SI.Voltage weakVoltage = 0 "Field-Weakening Voltage";
+    parameter Boolean fwEnabled = true "Field-Weakening enabled"  annotation(Dialog(tab="F.Weakening"));
+    parameter SI.Voltage fwMinV = 0 "Min armature voltage to engage" annotation(Dialog(tab="F.Weakening"));
+    parameter SI.Voltage fwCV = 0 "Max correction voltage" annotation(Dialog(tab="F.Weakening"));
+    parameter Real fwPIk = 0 "k value of PI" annotation(Dialog(tab="F.Weakening"));
+    parameter Real fwPITi = 0 "Ti value of PI" annotation(Dialog(tab="F.Weakening"));
     Modelica.Blocks.Interfaces.RealInput accel "Accelerator (0..1)" annotation(
       Placement(transformation(origin = {0, 182}, extent = {{-20, -20}, {20, 20}}, rotation = 270), iconTransformation(origin = {0, 120}, extent = {{-20, -20}, {20, 20}}, rotation = 270)));
     Modelica.Electrical.Analog.Interfaces.PositivePin armature_p "Armature Positive pin" annotation(
@@ -23,21 +26,11 @@ package Controllers "Custom motor controllers"
     Modelica.Electrical.Analog.Interfaces.NegativePin batt_n "Battery Negative pin" annotation(
       Placement(transformation(origin = {166, 62}, extent = {{-10, -10}, {10, 10}}), iconTransformation(origin = {120, 40}, extent = {{-10, -10}, {10, 10}})));
     Modelica.Electrical.Analog.Sources.SignalVoltage voltageArmature annotation(
-      Placement(transformation(origin = {-58, -132}, extent = {{10, -10}, {-10, 10}})));
+      Placement(transformation(origin = {-10, -132}, extent = {{10, -10}, {-10, 10}})));
     Modelica.Electrical.Analog.Sources.SignalVoltage voltageField annotation(
       Placement(transformation(origin = {-140, -6}, extent = {{10, -10}, {-10, 10}}, rotation = -90)));
-    Modelica.Blocks.Math.Gain accelToAmps(k = current) annotation(
-      Placement(transformation(origin = {48, 136}, extent = {{10, -10}, {-10, 10}}, rotation = 90)));
-    Modelica.Blocks.Continuous.LimPID PIArmature(Ni = 0.9, Ti = 0.2, controllerType = Modelica.Blocks.Types.SimpleController.PI, k = 2, yMax = 72, yMin = 0) annotation(
-      Placement(transformation(origin = {12, -50}, extent = {{10, -10}, {-10, 10}}, rotation = 90)));
-    Modelica.Blocks.Logical.Switch switchArmature annotation(
-      Placement(transformation(origin = {40, 78}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
-    Modelica.Blocks.Sources.Constant KRegen(k = -100) annotation(
-      Placement(transformation(origin = {6, 78}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
     Modelica.Blocks.Continuous.LimPID PIField(Ni = 0.9, Ti = 0.02, controllerType = Modelica.Blocks.Types.SimpleController.PI, k = 5, yMax = voltage, yMin = 0) annotation(
       Placement(transformation(origin = {-110, -6}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
-    Modelica.Blocks.Nonlinear.SlewRateLimiter slewArmature(Falling = -5000, Rising = 500) annotation(
-      Placement(transformation(origin = {40, 40}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
     Modelica.Electrical.Analog.Basic.Ground ground annotation(
       Placement(transformation(origin = {-170, 22}, extent = {{-10, -10}, {10, 10}})));
     Modelica.Electrical.Analog.Basic.Ground ground1 annotation(
@@ -45,145 +38,169 @@ package Controllers "Custom motor controllers"
     Modelica.Electrical.Analog.Basic.Ground ground11 annotation(
       Placement(transformation(origin = {174, 42}, extent = {{-10, -10}, {10, 10}})));
     Modelica.Electrical.Analog.Sources.SignalCurrent signalCurrent annotation(
-      Placement(transformation(origin = {140, -26}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
+      Placement(transformation(origin = {144, 44}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
     Modelica.Blocks.Math.Add add annotation(
-      Placement(transformation(origin = {92, -86}, extent = {{-10, 10}, {10, -10}}, rotation = 90)));
+      Placement(transformation(origin = {100, 98}, extent = {{-10, -10}, {10, 10}})));
     Modelica.Electrical.Analog.Sensors.MultiSensor sensorField annotation(
       Placement(transformation(origin = {-140, 24}, extent = {{10, -10}, {-10, 10}}, rotation = 90)));
     Modelica.Electrical.Analog.Sensors.MultiSensor sensorArmature annotation(
-      Placement(transformation(origin = {-26, -132}, extent = {{10, -10}, {-10, 10}}, rotation = 180)));
+      Placement(transformation(origin = {-46, -132}, extent = {{10, -10}, {-10, 10}}, rotation = 180)));
     Modelica.Electrical.Analog.Sensors.MultiSensor sensorBatt annotation(
-      Placement(transformation(origin = {140, 2}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
+      Placement(transformation(origin = {144, -8}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
     Modelica.Blocks.Math.Division realCurrent annotation(
-      Placement(transformation(origin = {110, -48}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
+      Placement(transformation(origin = {126, 80}, extent = {{10, -10}, {-10, 10}}, rotation = 90)));
     Modelica.Blocks.Math.Max max annotation(
-      Placement(transformation(origin = {130, -86}, extent = {{-10, 10}, {10, -10}}, rotation = 90)));
-    Modelica.Blocks.Sources.Constant const1(k = 0.0001) annotation(
-      Placement(transformation(origin = {124, -128}, extent = {{10, -10}, {-10, 10}}, rotation = -90)));
+      Placement(transformation(origin = {140, 116}, extent = {{10, -10}, {-10, 10}}, rotation = 90)));
+    Modelica.Blocks.Sources.Constant const1(k = 0.00001) annotation(
+      Placement(transformation(origin = {146, 146}, extent = {{10, 10}, {-10, -10}}, rotation = 90)));
     Modelica.Electrical.Analog.Basic.Ground gnd annotation(
       Placement(transformation(origin = {108, 2}, extent = {{-6, -6}, {6, 6}}, rotation = -90)));
-    Modelica.Electrical.Analog.Basic.Ground ground12 annotation(
-      Placement(transformation(origin = {34, -132}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Math.Add addRegen(k2 = -1) annotation(
       Placement(transformation(origin = {-48, 0}, extent = {{-10, 10}, {10, -10}}, rotation = -180)));
-  Modelica.Blocks.Math.RealToBoolean AccelOnOff(threshold = 0.01) annotation(
-      Placement(transformation(origin = {12, 134}, extent = {{-10, -10}, {10, 10}}, rotation = -90)));
   Regen regen(maxV = 48, regenPower = 3000)  annotation(
       Placement(transformation(origin = {-26, -28}, extent = {{10, 10}, {-10, -10}}, rotation = -90)));
   Modelica.Blocks.Sources.Constant KFieldVoltage(k = voltage) annotation(
       Placement(transformation(origin = {-48, 30}, extent = {{-10, -10}, {10, 10}})));
-  SepExFieldWeakening2 fieldWeakening(voltage = voltage, current = current, minV = 70, maxCorrection = 30)  annotation(
+  SepExFieldWeakening2 fieldWeakening(voltage = voltage, current = current, minV = fwMinV, maxCorrection = fwCV, piK = fwPIk, piTi = fwPITi)  annotation(
       Placement(transformation(origin = {-88, -90}, extent = {{10, -10}, {-10, 10}})));
   Modelica.Blocks.Math.Add addWeakening(k2 = -1) annotation(
       Placement(transformation(origin = {-80, -6}, extent = {{-10, 10}, {10, -10}}, rotation = -180)));
   Modelica.Blocks.Sources.Constant kzero(k = 0) annotation(
       Placement(transformation(origin = {-144, -60}, extent = {{-10, -10}, {10, 10}})));
   Modelica.Blocks.Logical.Switch swWeakening annotation(
-      Placement(transformation(origin = {-86, -58}, extent = {{-10, 10}, {10, -10}})));
-  Modelica.Blocks.Sources.BooleanConstant booleanConstant(k = weakeningEnabled)  annotation(
+      Placement(transformation(origin = {-88, -52}, extent = {{-10, 10}, {10, -10}})));
+  Modelica.Blocks.Sources.BooleanConstant booleanConstant(k = fwEnabled)  annotation(
       Placement(transformation(origin = {-144, -92}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Math.Gain accelToVolts(k = voltage) annotation(
+      Placement(transformation(origin = {20, -94}, extent = {{10, -10}, {-10, 10}})));
+  Modelica.Blocks.Continuous.LimPID PIArmature(Ni = 0.5, Ti = 0.01, controllerType = Modelica.Blocks.Types.SimpleController.PI, k = 0.5, yMax = 1, yMin = 0) annotation(
+      Placement(transformation(origin = {134, -136}, extent = {{10, 10}, {-10, -10}})));
+  Modelica.Blocks.Logical.Switch switchArmature annotation(
+      Placement(transformation(origin = {90, -78}, extent = {{-10, 10}, {10, -10}}, rotation = 270)));
+  Modelica.Blocks.Sources.Constant KRegen(k = -0.5) annotation(
+      Placement(transformation(origin = {124, -42}, extent = {{-10, 10}, {10, -10}}, rotation = 270)));
+  Modelica.Blocks.Nonlinear.SlewRateLimiter slewArmature(Falling = -5000, Rising = 2) annotation(
+      Placement(transformation(origin = {102, -136}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
+  Modelica.Blocks.Math.RealToBoolean AccelOnOff(threshold = 0.01) annotation(
+      Placement(transformation(origin = {90, -42}, extent = {{-10, -10}, {10, 10}}, rotation = 270)));
+  Utils.Ratio ratioI(base = current*voltage)  annotation(
+      Placement(transformation(origin = {104, -110}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Electrical.Analog.Basic.Capacitor capacitor(C(displayUnit = "uF") = 4.7e-4)  annotation(
+      Placement(transformation(origin = {-160, 0}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
+  Modelica.Electrical.Analog.Basic.Capacitor capacitor1(C(displayUnit = "uF") = 4.7e-4) annotation(
+      Placement(transformation(origin = {-34, -166}, extent = {{-10, -10}, {10, 10}}, rotation = 180)));
   equation
-    connect(accelToAmps.y, switchArmature.u1) annotation(
-      Line(points = {{48, 125}, {48, 90}}, color = {0, 0, 127}));
-    connect(KRegen.y, switchArmature.u3) annotation(
-      Line(points = {{6, 89}, {6, 98}, {32, 98}, {32, 90}}, color = {0, 0, 127}));
-    connect(AccelOnOff.y, switchArmature.u2) annotation(
-      Line(points = {{12, 123}, {12, 118}, {40, 118}, {40, 90}}, color = {255, 0, 255}));
-    connect(switchArmature.y, slewArmature.u) annotation(
-      Line(points = {{40, 67}, {40, 52}}, color = {0, 0, 127}));
-    connect(PIArmature.y, voltageArmature.v) annotation(
-      Line(points = {{12, -61}, {12, -64}, {-58, -64}, {-58, -120}}, color = {0, 0, 127}));
-    connect(slewArmature.y, PIArmature.u_s) annotation(
-      Line(points = {{40, 29}, {40, -11}, {12, -11}, {12, -38}}, color = {0, 0, 127}));
-    connect(PIField.y, voltageField.v) annotation(
-      Line(points = {{-121, -6}, {-128, -6}}, color = {0, 0, 127}));
-    connect(ground.p, field_n) annotation(
-      Line(points = {{-170, 32}, {-170, 36}, {-152, 36}, {-152, 40}}, color = {0, 0, 255}));
     connect(armature_n, ground1.p) annotation(
       Line(points = {{-72, -166}, {-72, -142}, {-92, -142}, {-92, -150}}, color = {0, 0, 255}));
-    connect(voltageArmature.n, armature_n) annotation(
-      Line(points = {{-68, -132}, {-72, -132}, {-72, -166}}, color = {0, 0, 255}));
     connect(voltageField.p, field_p) annotation(
       Line(points = {{-140, -16}, {-140, -40}, {-152, -40}}, color = {0, 0, 255}));
     connect(field_n, sensorField.pc) annotation(
       Line(points = {{-152, 40}, {-140, 40}, {-140, 34}}, color = {0, 0, 255}));
     connect(sensorField.nc, voltageField.n) annotation(
       Line(points = {{-140, 14}, {-140, 4}}, color = {0, 0, 255}));
-    connect(sensorArmature.nc, armature_p) annotation(
-      Line(points = {{-16, -132}, {8, -132}, {8, -166}}, color = {0, 0, 255}));
-    connect(voltageArmature.p, sensorArmature.pc) annotation(
-      Line(points = {{-48, -132}, {-36, -132}}, color = {0, 0, 255}));
-    connect(sensorArmature.i, PIArmature.u_m) annotation(
-      Line(points = {{-32, -121}, {-32, -71}, {34, -71}, {34, -51}, {24, -51}}, color = {255, 0, 0}));
     connect(batt_n, ground11.p) annotation(
       Line(points = {{166, 62}, {174, 62}, {174, 52}}, color = {0, 0, 255}));
-    connect(signalCurrent.p, batt_p) annotation(
-      Line(points = {{140, -36}, {140, -60}, {166, -60}}, color = {0, 0, 255}));
-    connect(sensorBatt.nc, signalCurrent.n) annotation(
-      Line(points = {{140, -8}, {140, -16}}, color = {0, 0, 255}));
-    connect(sensorBatt.pc, batt_n) annotation(
-      Line(points = {{140, 12}, {140, 62}, {166, 62}}, color = {0, 0, 255}));
-    connect(sensorBatt.pv, signalCurrent.p) annotation(
-      Line(points = {{150, 2}, {150, -36}, {140, -36}}, color = {0, 0, 255}));
     connect(gnd.p, sensorBatt.nv) annotation(
-      Line(points = {{114, 2}, {130, 2}}, color = {0, 0, 255}));
+      Line(points = {{114, 2}, {123, 2}, {123, -8}, {134, -8}}, color = {0, 0, 255}));
     connect(realCurrent.y, signalCurrent.i) annotation(
-      Line(points = {{110, -36}, {110, -26}, {128, -26}}, color = {0, 0, 127}));
+      Line(points = {{126, 69}, {126.5, 69}, {126.5, 44}, {132, 44}}, color = {0, 0, 127}));
     connect(max.y, realCurrent.u2) annotation(
-      Line(points = {{130, -74}, {130, -68}, {116, -68}, {116, -60}}, color = {0, 0, 127}));
+      Line(points = {{140, 105}, {140, 100.5}, {132, 100.5}, {132, 92}}, color = {0, 0, 127}));
     connect(add.y, realCurrent.u1) annotation(
-      Line(points = {{92, -74}, {92, -68}, {104, -68}, {104, -60}}, color = {0, 0, 127}));
+      Line(points = {{111, 98}, {120, 98}, {120, 92}}, color = {0, 0, 127}));
     connect(max.u2, const1.y) annotation(
-      Line(points = {{124, -98}, {124, -117}}, color = {0, 0, 127}));
-    connect(sensorBatt.v, max.u1) annotation(
-      Line(points = {{130, -4}, {74, -4}, {74, -148}, {136, -148}, {136, -98}}, color = {0, 0, 127}));
-    connect(sensorArmature.power, add.u1) annotation(
-      Line(points = {{-36, -126}, {-38, -126}, {-38, -110}, {98, -110}, {98, -98}}, color = {0, 0, 127}));
-    connect(sensorField.power, add.u2) annotation(
-      Line(points = {{-134, 36}, {62, 36}, {62, -106}, {86, -106}, {86, -98}}, color = {0, 0, 127}));
+      Line(points = {{146, 128}, {146, 135}}, color = {0, 0, 127}));
     connect(sensorArmature.pv, armature_p) annotation(
-      Line(points = {{-26, -142}, {-26, -150}, {8, -150}, {8, -166}}, color = {0, 0, 255}));
-    connect(sensorArmature.nv, ground12.p) annotation(
-      Line(points = {{-26, -122}, {-26, -118}, {34, -118}, {34, -122}}, color = {0, 0, 255}));
+      Line(points = {{-46, -142}, {-46, -150}, {8, -150}, {8, -166}}, color = {0, 0, 255}));
     connect(sensorField.pv, voltageField.p) annotation(
       Line(points = {{-150, 24}, {-152, 24}, {-152, -16}, {-140, -16}}, color = {0, 0, 255}));
     connect(sensorField.nv, field_n) annotation(
       Line(points = {{-130, 24}, {-120, 24}, {-120, 40}, {-152, 40}}, color = {0, 0, 255}));
-    connect(accel, accelToAmps.u) annotation(
-      Line(points = {{0, 182}, {0, 156}, {48, 156}, {48, 148}}, color = {0, 0, 127}, pattern = LinePattern.Dash));
     connect(regen.y, addRegen.u2) annotation(
       Line(points = {{-26, -17}, {-26.5, -17}, {-26.5, -6}, {-36, -6}}, color = {0, 0, 127}));
     connect(sensorField.v, PIField.u_m) annotation(
       Line(points = {{-128, 18}, {-110, 18}, {-110, 6}}, color = {0, 0, 127}));
     connect(KFieldVoltage.y, addRegen.u1) annotation(
       Line(points = {{-37, 30}, {-30, 30}, {-30, 6}, {-36, 6}}, color = {0, 0, 127}));
-    connect(sensorArmature.power, regen.u) annotation(
-      Line(points = {{-36, -126}, {-38, -126}, {-38, -50}, {-26, -50}, {-26, -40}}, color = {0, 0, 127}));
     connect(accel, regen.accel) annotation(
-      Line(points = {{0, 182}, {0, 156}, {-8, 156}, {-8, -28}, {-14, -28}}, color = {0, 0, 127}, pattern = LinePattern.Dash));
-    connect(accel, AccelOnOff.u) annotation(
-      Line(points = {{0, 182}, {0, 156}, {12, 156}, {12, 146}}, color = {0, 0, 127}, pattern = LinePattern.Dash));
+      Line(points = {{0, 182}, {0, 156}, {-8, 156}, {-8, -28}, {-14, -28}}, pattern = LinePattern.Dash));
     connect(sensorArmature.i, fieldWeakening.u2) annotation(
-      Line(points = {{-32, -120}, {-32, -96}, {-76, -96}}, color = {255, 0, 0}));
+      Line(points = {{-52, -121}, {-52, -96}, {-76, -96}}, color = {255, 0, 0}));
     connect(sensorArmature.v, fieldWeakening.u1) annotation(
-      Line(points = {{-20, -120}, {-20, -84}, {-76, -84}}, color = {0, 0, 127}));
+      Line(points = {{-40, -121}, {-40, -84}, {-76, -84}}, color = {0, 0, 127}));
     connect(addWeakening.y, PIField.u_s) annotation(
       Line(points = {{-90, -6}, {-98, -6}}, color = {0, 0, 127}));
     connect(accel, fieldWeakening.accel) annotation(
-      Line(points = {{0, 182}, {0, 156}, {-8, 156}, {-8, -108}, {-88, -108}, {-88, -102}}, color = {0, 0, 127}, pattern = LinePattern.Dash));
+      Line(points = {{0, 182}, {0, 156}, {-8, 156}, {-8, -108}, {-88, -108}, {-88, -102}}, pattern = LinePattern.Dash));
     connect(addRegen.y, addWeakening.u1) annotation(
       Line(points = {{-58, 0}, {-68, 0}}, color = {0, 0, 127}));
-  connect(addWeakening.u2, swWeakening.y) annotation(
-      Line(points = {{-68, -12}, {-62, -12}, {-62, -58}, {-75, -58}}, color = {0, 0, 127}));
-  connect(kzero.y, swWeakening.u3) annotation(
-      Line(points = {{-132, -60}, {-122, -60}, {-122, -50}, {-98, -50}}, color = {0, 0, 127}));
-  connect(fieldWeakening.y, swWeakening.u1) annotation(
-      Line(points = {{-98, -90}, {-104, -90}, {-104, -66}, {-98, -66}}, color = {0, 0, 127}));
-  connect(booleanConstant.y, swWeakening.u2) annotation(
-      Line(points = {{-132, -92}, {-114, -92}, {-114, -58}, {-98, -58}}, color = {255, 0, 255}));
+    connect(addWeakening.u2, swWeakening.y) annotation(
+      Line(points = {{-68, -12}, {-62, -12}, {-62, -52}, {-77, -52}}, color = {0, 0, 127}));
+    connect(kzero.y, swWeakening.u3) annotation(
+      Line(points = {{-132, -60}, {-122, -60}, {-122, -44}, {-100, -44}}, color = {0, 0, 127}));
+    connect(fieldWeakening.y, swWeakening.u1) annotation(
+      Line(points = {{-98, -90}, {-104, -90}, {-104, -60}, {-100, -60}}, color = {0, 0, 127}));
+    connect(booleanConstant.y, swWeakening.u2) annotation(
+      Line(points = {{-132, -92}, {-114, -92}, {-114, -52}, {-100, -52}}, color = {255, 0, 255}));
+    connect(signalCurrent.p, sensorBatt.pc) annotation(
+      Line(points = {{144, 34}, {144, 2}}, color = {0, 0, 255}));
+    connect(sensorBatt.nc, batt_p) annotation(
+      Line(points = {{144, -18}, {144, -60}, {166, -60}}, color = {0, 0, 255}));
+    connect(signalCurrent.n, batt_n) annotation(
+      Line(points = {{144, 54}, {144, 62}, {166, 62}}, color = {0, 0, 255}));
+    connect(sensorBatt.pv, signalCurrent.p) annotation(
+      Line(points = {{154, -8}, {154, 34}, {144, 34}}, color = {0, 0, 255}));
+    connect(max.u1, sensorBatt.v) annotation(
+      Line(points = {{134, 128}, {134, 136}, {80, 136}, {80, -14}, {134, -14}}, color = {0, 0, 127}));
+    connect(sensorField.power, add.u1) annotation(
+      Line(points = {{-134, 36}, {-134, 52}, {66, 52}, {66, 104}, {88, 104}}, color = {0, 0, 127}));
+    connect(sensorArmature.pc, armature_n) annotation(
+      Line(points = {{-56, -132}, {-72, -132}, {-72, -166}}, color = {0, 0, 255}));
+    connect(voltageArmature.p, armature_p) annotation(
+      Line(points = {{0, -132}, {8, -132}, {8, -166}}, color = {0, 0, 255}));
+    connect(sensorArmature.nc, voltageArmature.n) annotation(
+      Line(points = {{-36, -132}, {-20, -132}}, color = {0, 0, 255}));
+    connect(sensorArmature.nv, armature_n) annotation(
+      Line(points = {{-46, -122}, {-46, -116}, {-72, -116}, {-72, -166}}, color = {0, 0, 255}));
+    connect(AccelOnOff.y, switchArmature.u2) annotation(
+      Line(points = {{90, -53}, {90, -67}}, color = {255, 0, 255}));
+    connect(KRegen.y, switchArmature.u3) annotation(
+      Line(points = {{124, -53}, {124, -61}, {98, -61}, {98, -67}}, color = {0, 0, 127}));
+    connect(sensorArmature.power, regen.u) annotation(
+      Line(points = {{-56, -126}, {-60, -126}, {-60, -76}, {-26, -76}, {-26, -40}}, color = {0, 0, 127}));
+    connect(sensorArmature.power, add.u2) annotation(
+      Line(points = {{-56, -126}, {-60, -126}, {-60, -76}, {4, -76}, {4, 46}, {74, 46}, {74, 92}, {88, 92}}, color = {0, 0, 127}));
+    connect(switchArmature.y, PIArmature.u_s) annotation(
+      Line(points = {{90, -89}, {90, -104.5}, {146, -104.5}, {146, -136}}, color = {0, 0, 127}));
+    connect(PIArmature.y, slewArmature.u) annotation(
+      Line(points = {{123, -136}, {113, -136}}, color = {0, 0, 127}));
+    connect(ratioI.y, PIArmature.u_m) annotation(
+      Line(points = {{115, -110}, {133, -110}, {133, -124}}, color = {0, 0, 127}));
+    connect(accel, AccelOnOff.u) annotation(
+      Line(points = {{0, 182}, {-8, 182}, {-8, -26}, {90, -26}, {90, -30}}, color = {0, 0, 127}));
+    connect(accel, switchArmature.u1) annotation(
+      Line(points = {{0, 182}, {0, 156}, {-8, 156}, {-8, -28}, {74, -28}, {74, -66}, {82, -66}}, color = {0, 0, 127}));
+    connect(sensorArmature.power, ratioI.u) annotation(
+      Line(points = {{-56, -126}, {-60, -126}, {-60, -110}, {92, -110}}, color = {0, 0, 127}));
+    connect(addWeakening.y, voltageField.v) annotation(
+      Line(points = {{-90, -6}, {-94, -6}, {-94, -26}, {-128, -26}, {-128, -6}}, color = {0, 0, 127}));
+    connect(capacitor.n, field_n) annotation(
+      Line(points = {{-160, 10}, {-160, 40}, {-152, 40}}, color = {0, 0, 255}));
+    connect(field_n, ground.p) annotation(
+      Line(points = {{-152, 40}, {-170, 40}, {-170, 32}}, color = {0, 0, 255}));
+    connect(capacitor.p, field_p) annotation(
+      Line(points = {{-160, -10}, {-160, -40}, {-152, -40}}, color = {0, 0, 255}));
+    connect(accelToVolts.y, voltageArmature.v) annotation(
+      Line(points = {{10, -94}, {-10, -94}, {-10, -120}}, color = {0, 0, 127}));
+    connect(slewArmature.y, accelToVolts.u) annotation(
+      Line(points = {{92, -136}, {64, -136}, {64, -94}, {32, -94}}, color = {0, 0, 127}));
+    connect(capacitor1.n, armature_n) annotation(
+      Line(points = {{-44, -166}, {-72, -166}}, color = {0, 0, 255}));
+    connect(capacitor1.p, armature_p) annotation(
+      Line(points = {{-24, -166}, {8, -166}}, color = {0, 0, 255}));
     annotation(
       defaultComponentName = "sepEx",
-      Diagram(coordinateSystem(extent = {{-160, 160}, {160, -160}})),
+      Diagram(coordinateSystem(extent = {{-160, 160}, {160, -160}}), graphics = {Rectangle(origin = {30, -117}, extent = {{0, -1}, {0, 1}})}),
       Icon(coordinateSystem(extent = {{-130, -130}, {130, 130}}), graphics = {// Cuerpo del controlador (proporción cuadrada 120x120 relativa)
       Rectangle(extent = {{-90, 90}, {90, -90}}, lineColor = {0, 0, 0}, fillColor = {230, 230, 230}, fillPattern = FillPattern.Solid, lineThickness = 0.5), Ellipse(extent = {{-89, 40}, {-69, 20}}, lineColor = {0, 0, 255}), Ellipse(extent = {{-89, 20}, {-69, 0}}, lineColor = {0, 0, 255}), Ellipse(extent = {{-89, 0}, {-69, -20}}, lineColor = {0, 0, 255}), Ellipse(extent = {{-89, -20}, {-69, -40}}, lineColor = {0, 0, 255}), Rectangle(extent = {{-89, 40}, {-79, -40}}, lineColor = {230, 230, 230}, fillColor = {230, 230, 230}, fillPattern = FillPattern.Solid, lineThickness = 0.5), Line(points = {{-120, 40}, {-80, 40}}, color = {0, 0, 255}), Line(points = {{-120, -40}, {-80, -40}}, color = {0, 0, 255}), Line(points = {{-40, -120}, {-40, -90}}, color = {0, 0, 255}), Line(points = {{40, -120}, {40, -90}}, color = {0, 0, 255}), Text(extent = {{-150, 70}, {150, 55}}, textColor = {0, 0, 255}, textString = "%name")}));
   end SepExController;
@@ -291,6 +308,8 @@ package Controllers "Custom motor controllers"
     parameter SI.Current current = 0 "Controller current";
     parameter SI.Voltage minV = 0 "Min armature voltage";
     parameter SI.Voltage maxCorrection = 0 "Max correction voltage";
+    parameter Real piK = 0.2 "PI k value";
+    parameter Real piTi = 0.001 "PI Ti value";
     parameter SI.Voltage refThreshold = 10 "Ref threshold";
     parameter SI.Time timeThreshold = 0.5 "Time threshold";
     parameter Real kFW = 1.0 "Weakening Gain";
@@ -298,15 +317,15 @@ package Controllers "Custom motor controllers"
       Placement(transformation(origin = {0, -120}, extent = {{-20, 20}, {20, -20}}, rotation = -270), iconTransformation(origin = {0, -120}, extent = {{-20, 20}, {20, -20}}, rotation = -270)));
   Modelica.Blocks.Math.Gain accelToAmps(k = current) annotation(
       Placement(transformation(origin = {0, -82}, extent = {{-10, -10}, {10, 10}}, rotation = -270)));
-  Modelica.Blocks.Continuous.LimPID PIWeak(Ti = 0.001, controllerType = Modelica.Blocks.Types.SimpleController.PI, k = 0.8, yMax = maxCorrection, yMin = 0) annotation(
+  Modelica.Blocks.Continuous.LimPID PIWeak(Ti = piTi, controllerType = Modelica.Blocks.Types.SimpleController.PI, k = piK, yMax = maxCorrection, yMin = 0) annotation(
       Placement(transformation(origin = {18, -24}, extent = {{-10, 10}, {10, -10}}, rotation = -0)));
-  Modelica.Blocks.Math.Gain gain(k = voltage) annotation(
+  Modelica.Blocks.Math.Gain accelToPower(k = voltage) annotation(
       Placement(transformation(origin = {0, -52}, extent = {{-10, -10}, {10, 10}}, rotation = 90)));
-  Modelica.Blocks.Continuous.Derivative derivative(T = 1, k = 0.2) annotation(
+  Modelica.Blocks.Continuous.Derivative derivative(T = 0.5, k = 0.2) annotation(
       Placement(transformation(origin = {-74, 44}, extent = {{10, -10}, {-10, 10}}, rotation = -180)));
   Modelica.Blocks.Math.Abs abs1 annotation(
       Placement(transformation(origin = {-44, 44}, extent = {{10, -10}, {-10, 10}}, rotation = -180)));
-  Modelica.Blocks.Logical.LessThreshold uIsConstant(threshold = 0.5) annotation(
+  Modelica.Blocks.Logical.LessThreshold uIsConstant(threshold = 3) annotation(
       Placement(transformation(origin = {-16, 44}, extent = {{10, -10}, {-10, 10}}, rotation = -180)));
   Modelica.Blocks.Logical.GreaterEqualThreshold VuThreshold(threshold = minV) annotation(
       Placement(transformation(origin = {-74, 76}, extent = {{10, -10}, {-10, 10}}, rotation = -180)));
@@ -318,43 +337,47 @@ package Controllers "Custom motor controllers"
       Placement(transformation(origin = {12, 22}, extent = {{10, 10}, {-10, -10}}, rotation = 90)));
   Modelica.Blocks.Math.Product power annotation(
       Placement(transformation(origin = {-34, -6}, extent = {{-10, -10}, {10, 10}})));
-  Modelica.Blocks.Nonlinear.SlewRateLimiter slew(Falling = -500, Rising = 50) annotation(
+  Modelica.Blocks.Nonlinear.SlewRateLimiter slew(Falling = -10, Rising = 2) annotation(
       Placement(transformation(origin = {82, 0}, extent = {{-10, -10}, {10, 10}})));
+  Modelica.Blocks.Continuous.CriticalDamping criticalDamping(f = 1)  annotation(
+      Placement(transformation(origin = {82, -34}, extent = {{10, -10}, {-10, 10}}, rotation = -0)));
     equation
-  connect(u1, derivative.u) annotation(
+    connect(u1, derivative.u) annotation(
       Line(points = {{-120, 60}, {-94, 60}, {-94, 44}, {-86, 44}}, color = {0, 0, 127}));
-  connect(derivative.y, abs1.u) annotation(
+    connect(derivative.y, abs1.u) annotation(
       Line(points = {{-63, 44}, {-57, 44}}, color = {0, 0, 127}));
-  connect(abs1.y, uIsConstant.u) annotation(
+    connect(abs1.y, uIsConstant.u) annotation(
       Line(points = {{-33, 44}, {-28, 44}}, color = {0, 0, 127}));
-  connect(weakeningOn.y, swWeak.u2) annotation(
+    connect(weakeningOn.y, swWeak.u2) annotation(
       Line(points = {{12, 11}, {12, 0}, {40, 0}}, color = {255, 0, 255}));
-  connect(gain.u, accelToAmps.y) annotation(
+    connect(accelToPower.u, accelToAmps.y) annotation(
       Line(points = {{0, -64}, {0, -71}}, color = {0, 0, 127}));
-  connect(accel, accelToAmps.u) annotation(
+    connect(accel, accelToAmps.u) annotation(
       Line(points = {{0, -120}, {0, -94}}, color = {0, 0, 127}));
-  connect(gain.y, PIWeak.u_s) annotation(
-      Line(points = {{0, -41}, {0, -24}, {6, -24}}, color = {0, 0, 127}));
-  connect(power.y, PIWeak.u_m) annotation(
+    connect(power.y, PIWeak.u_m) annotation(
       Line(points = {{-22, -6}, {18, -6}, {18, -12}}, color = {0, 0, 127}));
-  connect(u1, power.u1) annotation(
+    connect(u1, power.u1) annotation(
       Line(points = {{-120, 60}, {-94, 60}, {-94, 0}, {-46, 0}}, color = {0, 0, 127}));
-  connect(u2, power.u2) annotation(
+    connect(u2, power.u2) annotation(
       Line(points = {{-120, -60}, {-94, -60}, {-94, -12}, {-46, -12}}, color = {0, 0, 127}));
-  connect(slew.y, y) annotation(
-      Line(points = {{94, 0}, {110, 0}}, color = {0, 0, 127}));
-  connect(swWeak.y, slew.u) annotation(
+    connect(swWeak.y, slew.u) annotation(
       Line(points = {{64, 0}, {70, 0}}, color = {0, 0, 127}));
-  connect(u1, VuThreshold.u) annotation(
+    connect(u1, VuThreshold.u) annotation(
       Line(points = {{-120, 60}, {-94, 60}, {-94, 76}, {-86, 76}}, color = {0, 0, 127}));
-  connect(uIsConstant.y, weakeningOn.u2) annotation(
+    connect(uIsConstant.y, weakeningOn.u2) annotation(
       Line(points = {{-4, 44}, {4, 44}, {4, 34}}, color = {255, 0, 255}));
-  connect(VuThreshold.y, weakeningOn.u1) annotation(
+    connect(VuThreshold.y, weakeningOn.u1) annotation(
       Line(points = {{-62, 76}, {12, 76}, {12, 34}}, color = {255, 0, 255}));
-  connect(KZero.y, swWeak.u3) annotation(
+    connect(KZero.y, swWeak.u3) annotation(
       Line(points = {{60, 50}, {32, 50}, {32, 8}, {40, 8}}, color = {0, 0, 127}));
-  connect(PIWeak.y, swWeak.u1) annotation(
+    connect(PIWeak.y, swWeak.u1) annotation(
       Line(points = {{30, -24}, {34, -24}, {34, -8}, {40, -8}}, color = {0, 0, 127}));
+    connect(accelToPower.y, PIWeak.u_s) annotation(
+      Line(points = {{0, -40}, {0, -24}, {6, -24}}, color = {0, 0, 127}));
+  connect(slew.y, criticalDamping.u) annotation(
+      Line(points = {{94, 0}, {98, 0}, {98, -34}, {94, -34}}, color = {0, 0, 127}));
+  connect(criticalDamping.y, y) annotation(
+      Line(points = {{72, -34}, {68, -34}, {68, -56}, {110, -56}, {110, 0}}, color = {0, 0, 127}));
     annotation(
       Diagram(graphics),
   Icon(graphics = {Text(origin = {-2, 52}, extent = {{-90, 20}, {-50, -20}}, textString = "vArm"), Text(origin = {-4, -50}, extent = {{-90, 20}, {-50, -20}}, textString = "iArm"), Text(origin = {66, -88}, extent = {{-90, 20}, {-50, -20}}, textString = "Accel"), Text(origin = {203, 2}, extent = {{-196, 20}, {-109, -20}}, textString = "vCorrection")}));
